@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.DS_Store
+*.local
+# Historial personal: no se versiona
+web/public/historial*.json
+data/
