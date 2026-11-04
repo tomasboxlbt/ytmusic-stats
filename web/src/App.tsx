@@ -1,14 +1,22 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { Filters, Play } from './lib/types'
-import { parseHistory } from './lib/parse'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { Filters, HistoryKind, Platform, Play } from './lib/types'
+import { DEFAULT_FILTERS } from './lib/types'
+import { finalize, parseFile } from './lib/parse'
 import { applyFilters, formatDate, nf } from './lib/stats'
-import { clearPlays, loadPlays, savePlays } from './lib/storage'
-import { Dropzone } from './components/Dropzone'
+import { clearPlays, loadPlays, savePlays, type LoadedFile } from './lib/storage'
+import { Dropzone, FileInput } from './components/Dropzone'
 import { FilterBar, type Preset } from './components/FilterBar'
 import { Dashboard } from './components/Dashboard'
 import { ArtistPanel } from './components/ArtistPanel'
 
 type Theme = 'auto' | 'light' | 'dark'
+
+const KIND_LABEL: Record<HistoryKind, string> = {
+  youtube: 'YouTube',
+  spotify: 'Spotify',
+  'spotify-extended': 'Spotify (ampliado)',
+  'spotify-podcast': 'Spotify podcasts (ignorado)',
+}
 
 function useTheme() {
   const [theme, setTheme] = useState<Theme>(() => {
@@ -23,23 +31,48 @@ function useTheme() {
   return [theme, setTheme] as const
 }
 
+async function readFiles(files: { name: string; text: string }[]) {
+  const plays: Play[] = []
+  const loaded: LoadedFile[] = []
+  const errors: string[] = []
+  for (const f of files) {
+    try {
+      const r = parseFile(JSON.parse(f.text))
+      plays.push(...r.plays)
+      loaded.push({ name: f.name, kind: KIND_LABEL[r.kind], plays: r.plays.length })
+    } catch (e) {
+      errors.push(`${f.name}: ${e instanceof Error ? e.message : 'no se pudo leer'}`)
+    }
+  }
+  return { plays, loaded, errors }
+}
+
 export default function App() {
   const [plays, setPlays] = useState<Play[] | null>(null)
-  const [fileName, setFileName] = useState('')
+  const [files, setFiles] = useState<LoadedFile[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [filters, setFilters] = useState<Filters>({ source: 'music', from: null, to: null })
+  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
   const [preset, setPreset] = useState<Preset>('all')
   const [artist, setArtist] = useState<string | null>(null)
   const [theme, setTheme] = useTheme()
+  const addInput = useRef<HTMLInputElement>(null)
 
-  const ingest = useCallback(async (text: string, name: string, persist: boolean) => {
-    const { plays } = parseHistory(JSON.parse(text))
-    if (!plays.length) throw new Error('No se encontraron reproducciones en el archivo.')
-    setPlays(plays)
-    setFileName(name)
-    if (persist) await savePlays({ plays, fileName: name, savedAt: Date.now() })
-  }, [])
+  /** Agrega archivos a lo ya cargado (o reemplaza si `replace`). */
+  const ingest = useCallback(
+    async (input: { name: string; text: string }[], base: { plays: Play[]; files: LoadedFile[] }, persist: boolean) => {
+      const { plays: parsed, loaded, errors } = await readFiles(input)
+      if (!loaded.length) throw new Error(errors.join(' · ') || 'No se pudo leer ningún archivo.')
+      const merged = finalize([...base.plays, ...parsed])
+      if (!merged.length) throw new Error('No se encontraron reproducciones de música en los archivos.')
+      const allFiles = [...base.files, ...loaded]
+      setPlays(merged)
+      setFiles(allFiles)
+      setError(errors.length ? errors.join(' · ') : null)
+      if (persist) await savePlays({ plays: merged, files: allFiles, savedAt: Date.now() })
+    },
+    [],
+  )
 
   // Al iniciar: primero lo guardado en el navegador; si no hay, /historial.json (útil en desarrollo).
   useEffect(() => {
@@ -47,24 +80,29 @@ export default function App() {
       const saved = await loadPlays()
       if (saved?.plays?.length) {
         setPlays(saved.plays)
-        setFileName(saved.fileName)
+        setFiles(saved.files ?? [])
       } else {
         try {
           const res = await fetch('/historial.json')
-          if (res.ok && res.headers.get('content-type')?.includes('json')) await ingest(await res.text(), 'historial.json', false)
+          if (res.ok && res.headers.get('content-type')?.includes('json')) {
+            await ingest([{ name: 'historial.json', text: await res.text() }], { plays: [], files: [] }, false)
+          }
         } catch { /* no hay archivo local */ }
       }
       setLoading(false)
     })()
   }, [ingest])
 
-  const onFile = async (file: File) => {
+  const onFiles = async (list: File[], append: boolean) => {
     setLoading(true)
     setError(null)
     try {
-      await ingest(await file.text(), file.name, true)
-      setFilters({ source: 'music', from: null, to: null })
-      setPreset('all')
+      const input = await Promise.all(list.map(async (f) => ({ name: f.name, text: await f.text() })))
+      await ingest(input, append && plays ? { plays, files } : { plays: [], files: [] }, true)
+      if (!append) {
+        setFilters(DEFAULT_FILTERS)
+        setPreset('all')
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo leer el archivo.')
     } finally {
@@ -75,9 +113,9 @@ export default function App() {
   const filtered = useMemo(() => (plays ? applyFilters(plays, filters) : []), [plays, filters])
   const years = useMemo(() => {
     if (!plays?.length) return []
-    const set = new Set(plays.map((p) => new Date(p.t).getFullYear()))
-    return [...set].sort()
+    return [...new Set(plays.map((p) => new Date(p.t).getFullYear()))].sort()
   }, [plays])
+  const platforms = useMemo(() => [...new Set((plays ?? []).map((p) => p.platform))] as Platform[], [plays])
   const artistRank = useMemo(() => {
     if (!artist) return 0
     const counts = new Map<string, number>()
@@ -91,8 +129,13 @@ export default function App() {
   const reset = async () => {
     await clearPlays()
     setPlays(null)
+    setFiles([])
     setArtist(null)
+    setFilters(DEFAULT_FILTERS)
+    setPreset('all')
   }
+
+  const fileSummary = files.length === 1 ? files[0].name : `${files.length} archivos`
 
   return (
     <div className="app">
@@ -100,10 +143,10 @@ export default function App() {
         <div className="brand">
           <div className="brand-mark">▶</div>
           <div>
-            <h1>YT Music Stats</h1>
+            <h1>Music Stats</h1>
             {plays && (
-              <small>
-                {fileName} · {nf.format(plays.length)} reproducciones · {formatDate(plays[0].t)} → {formatDate(plays[plays.length - 1].t)}
+              <small title={files.map((f) => `${f.name} · ${f.kind} · ${nf.format(f.plays)}`).join('\n')}>
+                {fileSummary} · {nf.format(plays.length)} reproducciones · {formatDate(plays[0].t)} → {formatDate(plays[plays.length - 1].t)}
               </small>
             )}
           </div>
@@ -116,25 +159,37 @@ export default function App() {
               </button>
             ))}
           </div>
-          {plays && <button className="btn" onClick={reset}>Cargar otro archivo</button>}
+          {plays && (
+            <>
+              <button className="btn" disabled={loading} onClick={() => addInput.current?.click()}>
+                {loading ? 'Procesando…' : '+ Agregar archivos'}
+              </button>
+              <FileInput ref={addInput} onFiles={(f) => onFiles(f, true)} />
+              <button className="btn" onClick={reset}>Empezar de nuevo</button>
+            </>
+          )}
         </div>
       </header>
 
+      {plays && error && <div className="card error" style={{ marginBottom: 16 }}>{error}</div>}
+
       {!plays ? (
-        <Dropzone onFile={onFile} error={error} loading={loading} />
+        <Dropzone onFiles={(f) => onFiles(f, false)} error={error} loading={loading} />
       ) : (
         <>
           <FilterBar
             filters={filters}
             preset={preset}
             years={years}
+            platforms={platforms}
             lastPlay={plays[plays.length - 1].t}
             onChange={(f, p) => { setFilters(f); setPreset(p) }}
           />
           <Dashboard plays={filtered} onArtist={setArtist} />
           <p className="foot">
-            El tiempo escuchado es una estimación: el historial no incluye la duración, así que se calcula con el hueco entre
-            reproducciones (máx. 10 min) y 3,5 min cuando no hay una siguiente.
+            Spotify informa la duración real de cada reproducción y solo se cuentan las de 30 segundos o más.
+            YouTube no la informa, así que ahí el tiempo se estima con el hueco entre reproducciones (máx. 10 min,
+            3,5 min si no hay una siguiente).
           </p>
         </>
       )}

@@ -1,4 +1,4 @@
-import type { Filters, Play } from './types'
+import type { Filters, Platform, Play } from './types'
 
 export const DAY = 86_400_000
 /** Si dos reproducciones están separadas por más de esto, se considera otra sesión. */
@@ -9,13 +9,16 @@ const MAX_PLAY = 10 * 60_000
 const DEFAULT_PLAY = 3.5 * 60_000
 
 export function isMusic(p: Play): boolean {
-  return p.fromMusicApp || p.isTopic
+  return p.platform === 'spotify' || p.fromMusicApp || p.isTopic
 }
 
 export function applyFilters(plays: Play[], f: Filters): Play[] {
   return plays.filter((p) => {
-    if (f.source === 'music' && !isMusic(p)) return false
-    if (f.source === 'ytmusic' && !p.fromMusicApp) return false
+    if (f.platform !== 'all' && p.platform !== f.platform) return false
+    if (p.platform === 'youtube') {
+      if (f.youtube === 'music' && !isMusic(p)) return false
+      if (f.youtube === 'ytmusic' && !p.fromMusicApp) return false
+    }
     if (f.from != null && p.t < f.from) return false
     if (f.to != null && p.t >= f.to) return false
     return true
@@ -70,6 +73,8 @@ export interface Stats {
   newArtistsByMonth: { month: string; count: number }[]
   /** artistas por los que más se repite cada canción (plays / canciones) */
   deepCuts: ArtistStat[]
+  /** reproducciones y tiempo por plataforma */
+  byPlatform: Record<Platform, { plays: number; ms: number }>
 }
 
 export function dayKey(t: number): string {
@@ -108,10 +113,13 @@ export function computeStats(plays: Play[]): Stats {
   const firstArtistMonth = new Map<string, string>()
   let listenMs = 0
   let night = 0
+  const byPlatform: Stats['byPlatform'] = { youtube: { plays: 0, ms: 0 }, spotify: { plays: 0, ms: 0 } }
 
   plays.forEach((p, i) => {
     const ms = durations[i]
     listenMs += ms
+    byPlatform[p.platform].plays++
+    byPlatform[p.platform].ms += ms
     const d = new Date(p.t)
     const wd = (d.getDay() + 6) % 7
     const h = d.getHours()
@@ -243,6 +251,7 @@ export function computeStats(plays: Play[]): Stats {
     oneSongArtists: artists.filter((a) => a.songs === 1).length,
     newArtistsByMonth,
     deepCuts,
+    byPlatform,
   }
 }
 

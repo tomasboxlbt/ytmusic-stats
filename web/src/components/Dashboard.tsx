@@ -75,6 +75,27 @@ function Facts({ s }: { s: Stats }) {
   )
 }
 
+function PlatformSplit({ s }: { s: Stats }) {
+  const yt = s.byPlatform.youtube.plays / s.plays
+  return (
+    <div className="kpi" title={`YouTube: ${nf.format(s.byPlatform.youtube.plays)} · Spotify: ${nf.format(s.byPlatform.spotify.plays)}`}>
+      <div className="label">Plataformas</div>
+      <div className="platform-split" aria-hidden>
+        <span style={{ width: `${yt * 100}%`, background: 'var(--series-yt)' }} />
+        <span style={{ width: `${(1 - yt) * 100}%`, background: 'var(--series-sp)' }} />
+      </div>
+      <div className="hint" style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+        <span><Dot color="var(--series-yt)" />YouTube {pct(yt)}</span>
+        <span><Dot color="var(--series-sp)" />Spotify {pct(1 - yt)}</span>
+      </div>
+    </div>
+  )
+}
+
+function Dot({ color }: { color: string }) {
+  return <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: color, marginRight: 5 }} />
+}
+
 export function Dashboard({ plays, onArtist }: { plays: Play[]; onArtist: (name: string) => void }) {
   const s = useMemo(() => computeStats(plays), [plays])
 
@@ -88,10 +109,15 @@ export function Dashboard({ plays, onArtist }: { plays: Play[]; onArtist: (name:
     <>
       <div className="kpis">
         <Kpi label="Reproducciones" value={nf.format(s.plays)} hint={`${nf.format(Math.round(s.plays / Math.max(1, s.activeDays)))} por día activo`} />
-        <Kpi label="Tiempo escuchado (est.)" value={formatDuration(s.listenMs)} hint={`${formatHours(s.listenMs)} en total`} />
+        <Kpi
+          label={s.byPlatform.youtube.plays ? 'Tiempo escuchado (est.)' : 'Tiempo escuchado'}
+          value={formatDuration(s.listenMs)}
+          hint={`${formatHours(s.listenMs)} en total`}
+        />
         <Kpi label="Canciones distintas" value={nf.format(s.uniqueSongs)} hint={`${(s.plays / Math.max(1, s.uniqueSongs)).toFixed(1).replace('.', ',')} plays por canción`} />
         <Kpi label="Artistas distintos" value={nf.format(s.uniqueArtists)} />
         <Kpi label="Días con música" value={nf.format(s.activeDays)} hint={`de ${nf.format(s.spanDays)} días (${pct(s.activeDays / Math.max(1, s.spanDays))})`} />
+        {s.byPlatform.youtube.plays > 0 && s.byPlatform.spotify.plays > 0 && <PlatformSplit s={s} />}
       </div>
 
       <div className="grid">

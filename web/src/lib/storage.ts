@@ -4,7 +4,7 @@ import type { Play } from './types'
 // volver a subir el archivo en cada recarga. Todo queda en el navegador.
 const DB = 'ytmusic-stats'
 const STORE = 'history'
-const KEY = 'plays-v2' // subir la versión si cambia la forma de Play
+const KEY = 'plays-v3' // subir la versión si cambia la forma de Play
 
 function open(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -15,9 +15,15 @@ function open(): Promise<IDBDatabase> {
   })
 }
 
+export interface LoadedFile {
+  name: string
+  kind: string
+  plays: number
+}
+
 export interface Saved {
   plays: Play[]
-  fileName: string
+  files: LoadedFile[]
   savedAt: number
 }
 

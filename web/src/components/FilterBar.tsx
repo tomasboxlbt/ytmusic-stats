@@ -1,4 +1,4 @@
-import type { Filters, SourceFilter } from '../lib/types'
+import type { Filters, Platform, PlatformFilter, YouTubeContent } from '../lib/types'
 import { DAY } from '../lib/stats'
 
 export type Preset = 'all' | '30d' | '90d' | '365d' | `y${number}` | 'custom'
@@ -8,13 +8,21 @@ interface Props {
   preset: Preset
   years: number[]
   lastPlay: number
+  /** plataformas presentes en los datos cargados */
+  platforms: Platform[]
   onChange: (f: Filters, preset: Preset) => void
 }
 
-const SOURCES: { id: SourceFilter; label: string; title: string }[] = [
-  { id: 'music', label: 'Música', title: 'YouTube Music + videos de canales "Artista - Topic" en YouTube' },
-  { id: 'ytmusic', label: 'Solo YT Music', title: 'Solo lo reproducido desde la app YouTube Music' },
-  { id: 'all', label: 'Todo YouTube', title: 'Incluye videos de YouTube que no son música' },
+const PLATFORMS: { id: PlatformFilter; label: string }[] = [
+  { id: 'all', label: 'Todas' },
+  { id: 'youtube', label: 'YouTube' },
+  { id: 'spotify', label: 'Spotify' },
+]
+
+const YT_CONTENT: { id: YouTubeContent; label: string; title: string }[] = [
+  { id: 'music', label: 'Solo música', title: 'YouTube Music + videos de canales "Artista - Topic" en YouTube' },
+  { id: 'ytmusic', label: 'Solo app YT Music', title: 'Solo lo reproducido desde la app YouTube Music' },
+  { id: 'all', label: 'Incluir videos', title: 'Incluye videos de YouTube que no son música' },
 ]
 
 const toInput = (t: number | null) => {
@@ -28,7 +36,7 @@ const fromInput = (s: string) => {
   return new Date(y, m - 1, d).getTime()
 }
 
-export function FilterBar({ filters, preset, years, lastPlay, onChange }: Props) {
+export function FilterBar({ filters, preset, years, lastPlay, platforms, onChange }: Props) {
   const setPreset = (p: Preset) => {
     const endOfLast = new Date(lastPlay)
     endOfLast.setHours(24, 0, 0, 0)
@@ -48,16 +56,30 @@ export function FilterBar({ filters, preset, years, lastPlay, onChange }: Props)
 
   return (
     <div className="filters" role="toolbar" aria-label="Filtros">
-      <div className="filter-group">
-        <label className="lbl">Fuente</label>
-        <div className="seg">
-          {SOURCES.map((s) => (
-            <button key={s.id} title={s.title} className={filters.source === s.id ? 'on' : ''} onClick={() => onChange({ ...filters, source: s.id }, preset)}>
-              {s.label}
-            </button>
-          ))}
+      {platforms.length > 1 && (
+        <div className="filter-group">
+          <label className="lbl">Plataforma</label>
+          <div className="seg">
+            {PLATFORMS.map((s) => (
+              <button key={s.id} className={filters.platform === s.id ? 'on' : ''} onClick={() => onChange({ ...filters, platform: s.id }, preset)}>
+                {s.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+      {platforms.includes('youtube') && filters.platform !== 'spotify' && (
+        <div className="filter-group">
+          <label className="lbl">YouTube</label>
+          <div className="seg">
+            {YT_CONTENT.map((s) => (
+              <button key={s.id} title={s.title} className={filters.youtube === s.id ? 'on' : ''} onClick={() => onChange({ ...filters, youtube: s.id }, preset)}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="filter-group">
         <label className="lbl">Período</label>
         <div className="seg">
