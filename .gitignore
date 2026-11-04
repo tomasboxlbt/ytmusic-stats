@@ -4,6 +4,7 @@ dist/
 *.local
 # Historial personal: no se versiona
 web/public/historial*.json
+web/data/
 data/
 *.tsbuildinfo
 .env

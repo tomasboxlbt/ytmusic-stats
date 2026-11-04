@@ -75,14 +75,14 @@ export default function App() {
     [],
   )
 
-  // Al iniciar: primero lo guardado en el navegador; si no hay, /historial.json (útil en desarrollo).
+  // Al iniciar: primero lo guardado en el navegador; si no hay y estamos en desarrollo, web/data/historial.json.
   useEffect(() => {
     ;(async () => {
       const saved = await loadPlays()
       if (saved?.plays?.length) {
         setPlays(saved.plays)
         setFiles(saved.files ?? [])
-      } else {
+      } else if (import.meta.env.DEV) {
         try {
           const res = await fetch('/historial.json')
           if (res.ok && res.headers.get('content-type')?.includes('json')) {

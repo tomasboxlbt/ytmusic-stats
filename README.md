@@ -28,8 +28,8 @@ fuentes a lo ya cargado (por ejemplo, YouTube y después Spotify).
 
 El formato se detecta solo. Los archivos de podcasts de Spotify se ignoran.
 
-En desarrollo también podés copiar el archivo a `web/public/historial.json` y se carga solo
-(ese archivo está en `.gitignore`, así que no se versiona).
+En desarrollo también podés copiar el archivo a `web/data/historial.json` y se carga solo
+(esa carpeta está en `.gitignore` y nunca se incluye en el build, así que no se publica).
 
 ## Qué muestra
 
