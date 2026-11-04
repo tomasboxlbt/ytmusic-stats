@@ -6,3 +6,6 @@ dist/
 web/public/historial*.json
 data/
 *.tsbuildinfo
+.env
+.env.*
+!.env.example

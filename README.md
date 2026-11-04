@@ -58,3 +58,19 @@ canales "Artista - Topic"; *Solo app YT Music*; *Incluir videos*) y período (to
   variantes con/sin tildes. Las canciones se agrupan por artista + título sin sufijos tipo
   "(Official Video)", "(Remastered)" o " - Remastered 2011".
 - Se descartan anuncios y entradas sin video.
+
+## Publicidad (Google AdSense)
+
+Opcional: la app muestra dos bloques verticales de 160×600 a los costados, **solo en pantallas de
+1640 px o más** (en pantallas más chicas no se pide ningún anuncio, para no ocultarlos ni achicar el
+dashboard). Sin configuración no se carga nada de Google.
+
+1. Copiá `web/.env.example` a `web/.env` y completá:
+   - `VITE_ADSENSE_CLIENT`: tu ID de editor (`ca-pub-…`).
+   - `VITE_ADSENSE_SLOT_LEFT` / `VITE_ADSENSE_SLOT_RIGHT`: IDs de dos bloques *Display* verticales.
+2. `npm run build` genera también `dist/ads.txt` con tu ID (AdSense lo pide en la raíz del dominio).
+3. Publicá `dist/` en tu dominio y agregalo en AdSense para la revisión.
+
+Con `VITE_ADSENSE_PREVIEW=true` se ven recuadros grises en lugar de anuncios, para probar el layout.
+AdSense no sirve anuncios en `localhost`. Si tenés visitas de Europa/Reino Unido, activá el mensaje
+de consentimiento (CMP) desde AdSense → *Privacidad y mensajes*; no requiere cambios en el código.

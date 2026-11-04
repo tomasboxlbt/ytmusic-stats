@@ -8,6 +8,7 @@ import { Dropzone, FileInput } from './components/Dropzone'
 import { FilterBar, type Preset } from './components/FilterBar'
 import { Dashboard } from './components/Dashboard'
 import { ArtistPanel } from './components/ArtistPanel'
+import { AdRail } from './components/AdSlot'
 
 type Theme = 'auto' | 'light' | 'dark'
 
@@ -138,63 +139,67 @@ export default function App() {
   const fileSummary = files.length === 1 ? files[0].name : `${files.length} archivos`
 
   return (
-    <div className="app">
-      <header className="top">
-        <div className="brand">
-          <div className="brand-mark">▶</div>
-          <div>
-            <h1>Music Stats</h1>
+    <div className="layout">
+      <AdRail side="left" />
+      <div className="app">
+        <header className="top">
+          <div className="brand">
+            <div className="brand-mark">▶</div>
+            <div>
+              <h1>Music Stats</h1>
+              {plays && (
+                <small title={files.map((f) => `${f.name} · ${f.kind} · ${nf.format(f.plays)}`).join('\n')}>
+                  {fileSummary} · {nf.format(plays.length)} reproducciones · {formatDate(plays[0].t)} → {formatDate(plays[plays.length - 1].t)}
+                </small>
+              )}
+            </div>
+          </div>
+          <div className="top-actions">
+            <div className="seg" aria-label="Tema">
+              {(['auto', 'light', 'dark'] as Theme[]).map((t) => (
+                <button key={t} className={theme === t ? 'on' : ''} onClick={() => setTheme(t)}>
+                  {t === 'auto' ? 'Auto' : t === 'light' ? 'Claro' : 'Oscuro'}
+                </button>
+              ))}
+            </div>
             {plays && (
-              <small title={files.map((f) => `${f.name} · ${f.kind} · ${nf.format(f.plays)}`).join('\n')}>
-                {fileSummary} · {nf.format(plays.length)} reproducciones · {formatDate(plays[0].t)} → {formatDate(plays[plays.length - 1].t)}
-              </small>
+              <>
+                <button className="btn" disabled={loading} onClick={() => addInput.current?.click()}>
+                  {loading ? 'Procesando…' : '+ Agregar archivos'}
+                </button>
+                <FileInput ref={addInput} onFiles={(f) => onFiles(f, true)} />
+                <button className="btn" onClick={reset}>Empezar de nuevo</button>
+              </>
             )}
           </div>
-        </div>
-        <div className="top-actions">
-          <div className="seg" aria-label="Tema">
-            {(['auto', 'light', 'dark'] as Theme[]).map((t) => (
-              <button key={t} className={theme === t ? 'on' : ''} onClick={() => setTheme(t)}>
-                {t === 'auto' ? 'Auto' : t === 'light' ? 'Claro' : 'Oscuro'}
-              </button>
-            ))}
-          </div>
-          {plays && (
-            <>
-              <button className="btn" disabled={loading} onClick={() => addInput.current?.click()}>
-                {loading ? 'Procesando…' : '+ Agregar archivos'}
-              </button>
-              <FileInput ref={addInput} onFiles={(f) => onFiles(f, true)} />
-              <button className="btn" onClick={reset}>Empezar de nuevo</button>
-            </>
-          )}
-        </div>
-      </header>
+        </header>
 
-      {plays && error && <div className="card error" style={{ marginBottom: 16 }}>{error}</div>}
+        {plays && error && <div className="card error" style={{ marginBottom: 16 }}>{error}</div>}
 
-      {!plays ? (
-        <Dropzone onFiles={(f) => onFiles(f, false)} error={error} loading={loading} />
-      ) : (
-        <>
-          <FilterBar
-            filters={filters}
-            preset={preset}
-            years={years}
-            platforms={platforms}
-            lastPlay={plays[plays.length - 1].t}
-            onChange={(f, p) => { setFilters(f); setPreset(p) }}
-          />
-          <Dashboard plays={filtered} onArtist={setArtist} />
-          <p className="foot">
-            Spotify informa la duración real de cada reproducción y solo se cuentan las de 30 segundos o más.
-            YouTube no la informa, así que ahí el tiempo se estima con el hueco entre reproducciones (máx. 10 min,
-            3,5 min si no hay una siguiente).
-          </p>
-        </>
-      )}
+        {!plays ? (
+          <Dropzone onFiles={(f) => onFiles(f, false)} error={error} loading={loading} />
+        ) : (
+          <>
+            <FilterBar
+              filters={filters}
+              preset={preset}
+              years={years}
+              platforms={platforms}
+              lastPlay={plays[plays.length - 1].t}
+              onChange={(f, p) => { setFilters(f); setPreset(p) }}
+            />
+            <Dashboard plays={filtered} onArtist={setArtist} />
+            <p className="foot">
+              Spotify informa la duración real de cada reproducción y solo se cuentan las de 30 segundos o más.
+              YouTube no la informa, así que ahí el tiempo se estima con el hueco entre reproducciones (máx. 10 min,
+              3,5 min si no hay una siguiente).
+            </p>
+          </>
+        )}
 
-      {artist && plays && <ArtistPanel name={artist} plays={filtered} rank={artistRank} onClose={() => setArtist(null)} />}
+        {artist && plays && <ArtistPanel name={artist} plays={filtered} rank={artistRank} onClose={() => setArtist(null)} />}
+      </div>
+      <AdRail side="right" />
     </div>
   )
 }
