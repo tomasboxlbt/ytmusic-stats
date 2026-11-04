@@ -5,3 +5,4 @@ dist/
 # Historial personal: no se versiona
 web/public/historial*.json
 data/
+*.tsbuildinfo

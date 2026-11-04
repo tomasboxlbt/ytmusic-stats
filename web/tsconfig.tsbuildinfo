@@ -1,1 +1,0 @@
-{"root":["./src/App.tsx","./src/main.tsx","./src/components/ArtistPanel.tsx","./src/components/BarChart.tsx","./src/components/Dashboard.tsx","./src/components/Dropzone.tsx","./src/components/FilterBar.tsx","./src/components/Heatmaps.tsx","./src/components/Rankings.tsx","./src/lib/parse.ts","./src/lib/stats.ts","./src/lib/storage.ts","./src/lib/types.ts"],"version":"5.9.3"}
