@@ -32,7 +32,7 @@ function devHistory(): Plugin {
     apply: 'serve',
     configureServer(server) {
       server.middlewares.use('/historial.json', (_req, res, next) => {
-        const file = path.resolve(__dirname, 'data/historial.json')
+        const file = path.resolve(import.meta.dirname, 'data/historial.json')
         if (!fs.existsSync(file)) return next()
         res.setHeader('Content-Type', 'application/json')
         fs.createReadStream(file).pipe(res)
