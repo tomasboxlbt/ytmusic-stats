@@ -144,7 +144,11 @@ export default function App() {
       <div className="app">
         <header className="top">
           <div className="brand">
-            <div className="brand-mark">▶</div>
+            <svg className="brand-mark" viewBox="0 0 32 32" aria-hidden>
+              <rect x="3" y="15" width="7" height="14" rx="3.5" />
+              <rect x="12.5" y="3" width="7" height="26" rx="3.5" />
+              <rect x="22" y="9" width="7" height="20" rx="3.5" />
+            </svg>
             <div>
               <h1>Music Stats</h1>
               {plays && (
