@@ -61,13 +61,18 @@ canales "Artista - Topic"; *Solo app YT Music*; *Incluir videos*) y período (to
 
 ## Publicidad (Google AdSense)
 
-Opcional: la app muestra dos bloques verticales de 160×600 a los costados, **solo en pantallas de
-1640 px o más** (en pantallas más chicas no se pide ningún anuncio, para no ocultarlos ni achicar el
-dashboard). Sin configuración no se carga nada de Google.
+Opcional. El formato depende del ancho de pantalla:
+
+- **1640 px o más**: dos bloques verticales de 160×600 a los costados, fijos al hacer scroll.
+- **Menos de 1640 px** (celulares, tablets, notebooks): un banner horizontal responsive debajo del encabezado.
+
+Cada formato se monta solo cuando corresponde (no se ocultan con CSS, que va contra las políticas de
+AdSense). Sin configuración no se carga nada de Google.
 
 1. Copiá `web/.env.example` a `web/.env` y completá:
    - `VITE_ADSENSE_CLIENT`: tu ID de editor (`ca-pub-…`).
    - `VITE_ADSENSE_SLOT_LEFT` / `VITE_ADSENSE_SLOT_RIGHT`: IDs de dos bloques *Display* verticales.
+   - `VITE_ADSENSE_SLOT_BANNER`: ID de un bloque *Display* horizontal (adaptable).
 2. `npm run build` genera también `dist/ads.txt` con tu ID (AdSense lo pide en la raíz del dominio).
 3. Publicá `dist/` en tu dominio y agregalo en AdSense para la revisión.
 

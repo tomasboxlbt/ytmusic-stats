@@ -8,7 +8,7 @@ import { Dropzone, FileInput } from './components/Dropzone'
 import { FilterBar, type Preset } from './components/FilterBar'
 import { Dashboard } from './components/Dashboard'
 import { ArtistPanel } from './components/ArtistPanel'
-import { AdRail } from './components/AdSlot'
+import { AdBanner, AdRail } from './components/AdSlot'
 
 type Theme = 'auto' | 'light' | 'dark'
 
@@ -173,6 +173,8 @@ export default function App() {
             )}
           </div>
         </header>
+
+        <AdBanner />
 
         {plays && error && <div className="card error" style={{ marginBottom: 16 }}>{error}</div>}
 
